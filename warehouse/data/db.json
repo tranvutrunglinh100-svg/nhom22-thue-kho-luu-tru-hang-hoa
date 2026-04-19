@@ -1,0 +1,44 @@
+
+{
+  "contracts": [],
+  "warehouse_cells": {
+    "A-01": {
+      "status": "occupied",
+      "tenant": "Cty TNHH Tuấn Châu",
+      "period": "01/08 - 31/12/2024",
+      "area": "80m²"
+    },
+    "A-02": {
+      "status": "occupied",
+      "tenant": "Cty TNHH Tuấn Châu",
+      "period": "01/08 - 31/12/2024",
+      "area": "80m²"
+    },
+    "A-03": {
+      "status": "available",
+      "area": "80m²"
+    },
+    "A-04": {
+      "status": "occupied",
+      "tenant": "Vina Kimchi Co.",
+      "period": "20/09 - 20/12/2024",
+      "area": "80m²"
+    },
+    "B-01": {
+      "status": "full",
+      "area": "100m²"
+    },
+    "B-03": {
+      "status": "occupied",
+      "tenant": "Minh Phát Logistics",
+      "period": "15/09 - 15/01/2025",
+      "area": "100m²"
+    },
+    "B-04": {
+      "status": "reserved",
+      "tenant": "Sunrise Express",
+      "period": "Đặt trước",
+      "area": "100m²"
+    }
+  }
+}
