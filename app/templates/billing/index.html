@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% block title %}Tài chính{% endblock %}
+{% block page_title %}Quản lý tài chính & thanh toán{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('billing.create') }}" class="btn btn-primary">+ Tạo hóa đơn</a>
+  <form method="POST" action="{{ url_for('billing.auto_generate') }}" style="display:inline">
+    <button type="submit" class="btn"
+            onclick="return confirm('Tự động tạo hóa đơn tháng này cho tất cả hợp đồng?')">
+      ⚡ Tạo HĐ tự động
+    </button>
+  </form>
+  <a href="{{ url_for('billing.export_excel') }}" class="btn">📥 Xuất Excel</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats -->
+<div class="stat-cards" style="grid-template-columns:repeat(3,1fr)">
+  <div class="stat-card green">
+    <div class="stat-label">Đã thanh toán (tháng này)</div>
+    <div class="stat-value">{{ '{:,.1f}'.format(stats.paid_month / 1000000) }} tr</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-label">Còn nợ</div>
+    <div class="stat-value">{{ '{:,.1f}'.format(stats.unpaid / 1000000) }} tr</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-label">Quá hạn</div>
+    <div class="stat-value">{{ '{:,.1f}'.format(stats.overdue / 1000000) }} tr</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar">
+  <div class="filter-tabs">
+    <a href="{{ url_for('billing.index') }}"
+       class="filter-tab {{ 'active' if status_filter=='all' }}">Tất cả</a>
+    <a href="{{ url_for('billing.index', status='unpaid') }}"
+       class="filter-tab {{ 'active' if status_filter=='unpaid' }}">Còn nợ</a>
+    <a href="{{ url_for('billing.index', status='paid') }}"
+       class="filter-tab {{ 'active' if status_filter=='paid' }}">Đã thanh toán</a>
+    <a href="{{ url_for('billing.index', status='overdue') }}"
+       class="filter-tab {{ 'active' if status_filter=='overdue' }}">Quá hạn</a>
+  </div>
+  <form method="GET" style="margin-left:auto">
+    <input type="hidden" name="status" value="{{ status_filter }}">
+    <input type="text" name="search" value="{{ search }}"
+           class="search-input" placeholder="Tìm mã HĐ, khách hàng...">
+  </form>
+</div>
+
+<!-- Table -->
+<div class="panel">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã hóa đơn</th>
+          <th>Khách hàng</th>
+          <th>Kỳ thanh toán</th>
+          <th>Tiền thuê</th>
+          <th>Dịch vụ</th>
+          <th>Tổng tiền</th>
+          <th>Hạn TT</th>
+          <th>Trạng thái</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invoices.items %}
+        {% set label, color = STATUS_LABELS[inv.status] %}
+        <tr>
+          <td><strong>{{ inv.code }}</strong></td>
+          <td>{{ inv.contract.customer.name }}</td>
+          <td style="font-size:12px">
+            {{ inv.period_start.strftime('%d/%m/%Y') }} —
+            {{ inv.period_end.strftime('%d/%m/%Y') }}
+          </td>
+          <td>{{ '{:,.0f}'.format(inv.base_amount) }} đ</td>
+          <td>{{ '{:,.0f}'.format(inv.service_amount) if inv.service_amount else '—' }}</td>
+          <td><strong>{{ '{:,.0f}'.format(inv.total_amount) }} đ</strong></td>
+          <td style="{{ 'color:var(--red)' if inv.status=='overdue' }}">
+            {{ inv.due_date.strftime('%d/%m/%Y') if inv.due_date else '—' }}
+          </td>
+          <td><span class="badge badge-{{ color }}">{{ label }}</span></td>
+          <td>
+            <a href="{{ url_for('billing.detail', invoice_id=inv.id) }}" class="btn btn-sm">Chi tiết</a>
+            {% if inv.status != 'paid' %}
+            <a href="{{ url_for('billing.record_payment', invoice_id=inv.id) }}"
+               class="btn btn-sm btn-primary">Thanh toán</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted)">
+            Không có hóa đơn nào
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if invoices.pages > 1 %}
+  <div style="padding:12px 16px;border-top:1px solid var(--border)">
+    <div class="pagination">
+      {% if invoices.has_prev %}
+      <a href="{{ url_for('billing.index', page=invoices.prev_num, status=status_filter) }}"
+         class="page-link">← Trước</a>
+      {% endif %}
+      {% for p in invoices.iter_pages() %}
+        {% if p %}
+        <a href="{{ url_for('billing.index', page=p, status=status_filter) }}"
+           class="page-link {{ 'active' if p == invoices.page }}">{{ p }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if invoices.has_next %}
+      <a href="{{ url_for('billing.index', page=invoices.next_num, status=status_filter) }}"
+         class="page-link">Sau →</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

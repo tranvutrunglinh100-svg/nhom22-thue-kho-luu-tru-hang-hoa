@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% block title %}Tổng quan{% endblock %}
+{% block page_title %}Bảng điều khiển tổng quan{% endblock %}
+
+{% block topbar_actions %}
+  <span style="font-size:12px;color:var(--text-muted)">
+    {{ now.strftime('%d/%m/%Y') if now else '' }}
+  </span>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stat Cards -->
+<div class="stat-cards">
+  <div class="stat-card blue">
+    <div class="stat-label">Diện tích trống</div>
+    <div class="stat-value">{{ stats.empty_area_m2|int }} m²</div>
+    <div class="stat-sub">{{ stats.empty_slots }} vị trí / {{ stats.total_slots }} tổng cộng</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-label">Doanh thu tháng này</div>
+    <div class="stat-value">{{ '{:,.0f}'.format(stats.monthly_revenue / 1000000) }} tr</div>
+    <div class="stat-sub">{{ '{:.1f}'.format(stats.occupancy_rate) }}% tỷ lệ lấp đầy</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-label">HĐ sắp hết hạn</div>
+    <div class="stat-value">{{ stats.expiring_contracts }}</div>
+    <div class="stat-sub">Trong vòng 30 ngày tới</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Yêu cầu chờ xử lý</div>
+    <div class="stat-value">{{ stats.pending_orders }}</div>
+    <div class="stat-sub">{{ stats.today_orders }} lệnh hôm nay</div>
+  </div>
+</div>
+
+<!-- Charts & Activity -->
+<div class="grid-2 mb-16">
+
+  <!-- Biểu đồ tỷ lệ lấp đầy -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Tỷ lệ lấp đầy kho</span>
+      <a href="{{ url_for('warehouse.index') }}" class="btn btn-sm">Xem sơ đồ →</a>
+    </div>
+    <div class="panel-body" style="display:flex;align-items:center;gap:24px">
+      <canvas id="donutChart" width="140" height="140"></canvas>
+      <div>
+        <div class="legend-item" style="margin-bottom:8px">
+          <div class="legend-dot" style="background:#378ADD;width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:6px"></div>
+          <span>Đang thuê: <strong>{{ stats.rented_slots }}</strong> ô ({{ stats.occupancy_rate }}%)</span>
+        </div>
+        <div class="legend-item" style="margin-bottom:8px">
+          <div class="legend-dot" style="background:#C0DD97;width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:6px"></div>
+          <span>Trống: <strong>{{ stats.empty_slots }}</strong> ô</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#FAC775;width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:6px"></div>
+          <span>Bảo trì: <strong>{{ stats.maintain_slots }}</strong> ô</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hoạt động gần đây -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Hoạt động gần đây</span>
+      <a href="{{ url_for('logistics.index') }}" class="btn btn-sm">Xem tất cả →</a>
+    </div>
+    <div>
+      {% for act in activities %}
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border)">
+        <div style="width:8px;height:8px;border-radius:50%;background:{{ '#3B6D11' if act.color=='success' else '#BA7517' }};margin-top:5px;flex-shrink:0"></div>
+        <div>
+          <div style="font-size:13px">{{ act.text }}</div>
+          <div style="font-size:11px;color:var(--text-muted)">{{ act.time }}</div>
+        </div>
+      </div>
+      {% else %}
+      <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">
+        Chưa có hoạt động nào
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Hợp đồng sắp hết hạn -->
+{% if expiring_contracts %}
+<div class="panel mb-16">
+  <div class="panel-header">
+    <span class="panel-title">⚠ Hợp đồng sắp hết hạn</span>
+    <a href="{{ url_for('contracts.index', status='expiring') }}" class="btn btn-sm">Xem tất cả</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã HĐ</th><th>Khách hàng</th><th>Ngày hết hạn</th><th>Còn lại</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in expiring_contracts %}
+        <tr>
+          <td><strong>{{ c.code }}</strong></td>
+          <td>{{ c.customer.name }}</td>
+          <td>{{ c.end_date.strftime('%d/%m/%Y') }}</td>
+          <td>
+            <span class="badge {{ 'badge-danger' if c.days_until_expiry <= 7 else 'badge-warning' }}">
+              {{ c.days_until_expiry }} ngày
+            </span>
+          </td>
+          <td>
+            <a href="{{ url_for('contracts.detail', contract_id=c.id) }}" class="btn btn-sm">Chi tiết</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Lệnh chờ xử lý -->
+{% if pending_orders %}
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-title">Lệnh nhập/xuất chờ xử lý</span>
+    <a href="{{ url_for('logistics.index', status='pending') }}" class="btn btn-sm">Xem tất cả</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Mã lệnh</th><th>Loại</th><th>Khách hàng</th><th>Ngày tạo</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for o in pending_orders %}
+        <tr>
+          <td><strong>{{ o.code }}</strong></td>
+          <td>
+            <span class="badge {{ 'badge-success' if o.order_type=='inbound' else 'badge-warning' }}">
+              {{ o.type_label }}
+            </span>
+          </td>
+          <td>{{ o.customer.name }}</td>
+          <td>{{ o.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>
+            <a href="{{ url_for('logistics.detail', order_id=o.id) }}" class="btn btn-sm">Xem</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const ctx = document.getElementById('donutChart');
+if (ctx) {
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Đang thuê', 'Trống', 'Bảo trì'],
+      datasets: [{
+        data: [{{ stats.rented_slots }}, {{ stats.empty_slots }}, {{ stats.maintain_slots }}],
+        backgroundColor: ['#378ADD', '#C0DD97', '#FAC775'],
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      cutout: '65%',
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+</script>
+{% endblock %}

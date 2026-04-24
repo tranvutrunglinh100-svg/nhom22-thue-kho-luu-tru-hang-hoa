@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Ghi nhận thanh toán{% endblock %}
+{% block page_title %}Ghi nhận thanh toán — {{ invoice.code }}{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('billing.detail', invoice_id=invoice.id) }}" class="btn">← Quay lại</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:500px">
+  <div class="panel mb-16">
+    <div class="panel-header"><span class="panel-title">Thông tin hóa đơn</span></div>
+    <div class="panel-body">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="color:var(--text-muted)">Khách hàng</span>
+        <strong>{{ invoice.contract.customer.name }}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="color:var(--text-muted)">Tổng hóa đơn</span>
+        <strong>{{ '{:,.0f}'.format(invoice.total_amount) }} đ</strong>
+      </div>
+      {% set paid_total = invoice.payments | sum(attribute='amount') %}
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="color:var(--text-muted)">Đã thanh toán</span>
+        <strong style="color:var(--green)">{{ '{:,.0f}'.format(paid_total) }} đ</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border)">
+        <span style="font-weight:600">Còn lại</span>
+        <strong style="color:var(--red);font-size:16px">
+          {{ '{:,.0f}'.format(invoice.total_amount - paid_total) }} đ
+        </strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Thông tin thanh toán</span></div>
+    <div class="panel-body">
+      <form method="POST">
+        <div class="form-group">
+          <label class="form-label">Số tiền thanh toán (đ) *</label>
+          <input type="number" name="amount" class="form-control"
+                 value="{{ (invoice.total_amount - paid_total)|int }}"
+                 min="1" step="1000" required autofocus>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Phương thức thanh toán *</label>
+          <select name="method" class="form-control" required>
+            <option value="Chuyển khoản">Chuyển khoản ngân hàng</option>
+            <option value="Tiền mặt">Tiền mặt</option>
+            <option value="Ví điện tử">Ví điện tử</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Mã giao dịch / Số bút toán</label>
+          <input type="text" name="reference" class="form-control"
+                 placeholder="VD: FT26104123456">
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <a href="{{ url_for('billing.detail', invoice_id=invoice.id) }}" class="btn" style="flex:1;justify-content:center">Huỷ</a>
+          <button type="submit" class="btn btn-primary" style="flex:2;justify-content:center">
+            ✓ Xác nhận thanh toán
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

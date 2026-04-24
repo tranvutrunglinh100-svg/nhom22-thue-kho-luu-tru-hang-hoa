@@ -1,0 +1,41 @@
+<!-- zone_list.html -->
+{% extends 'base.html' %}
+{% block title %}Khu vực{% endblock %}
+{% block page_title %}Danh sách khu vực kho{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('warehouse.zone_create') }}" class="btn btn-primary">+ Tạo khu vực</a>
+{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã</th>
+          <th>Tên khu vực</th>
+          <th>Loại hàng</th>
+          <th>Diện tích tối đa</th>
+          <th>Tổng ô</th>
+          <th>Đang thuê</th>
+          <th>Tỷ lệ</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for z in zones %}
+        <tr>
+          <td><strong>{{ z.code }}</strong></td>
+          <td>{{ z.name }}</td>
+          <td>{{ z.description or '—' }}</td>
+          <td>{{ z.max_area_m2 }} m²</td>
+          <td>{{ z.total_slots }}</td>
+          <td>{{ z.rented_slots }}</td>
+          <td>{{ z.occupancy_rate }}%</td>
+          <td><a href="{{ url_for('warehouse.zone_edit', zone_id=z.id) }}" class="btn btn-sm">Sửa</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Biên bản bàn giao — {{ order.code }}</title>
+  <style>
+    body { font-family: 'Times New Roman', serif; font-size: 13pt; margin: 2cm; color: #000; }
+    h1 { font-size: 16pt; text-align: center; margin: 0 0 4px; }
+    .subtitle { text-align: center; font-size: 11pt; color: #444; margin-bottom: 24px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    th, td { border: 1px solid #333; padding: 7px 10px; font-size: 12pt; }
+    th { background: #F0F0F0; text-align: left; }
+    .info-row { display: flex; gap: 24px; margin-bottom: 10px; }
+    .info-label { font-weight: bold; min-width: 160px; }
+    .sign-area { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; }
+    .sign-box { text-align: center; }
+    .sign-line { border-top: 1px solid #000; margin-top: 60px; padding-top: 6px; font-size: 12pt; }
+    @media print { button { display: none; } }
+  </style>
+</head>
+<body>
+
+<div style="text-align:center;margin-bottom:6px">
+  <strong style="font-size:12pt">CÔNG TY KHO HÀNG WAREFLOW</strong>
+</div>
+<h1>BIÊN BẢN BÀN GIAO HÀNG HÓA</h1>
+<div class="subtitle">
+  {{ 'Nhập kho' if order.order_type == 'inbound' else 'Xuất kho' }}
+  — Ngày {{ order.completed_at.strftime('%d/%m/%Y') if order.completed_at else order.request_date.strftime('%d/%m/%Y') }}
+</div>
+
+<table style="border:none;margin-bottom:20px">
+  <tr>
+    <td style="border:none;width:50%">
+      <strong>Mã lệnh:</strong> {{ order.code }}
+    </td>
+    <td style="border:none;width:50%">
+      <strong>Loại:</strong>
+      {{ 'NHẬP KHO' if order.order_type == 'inbound' else 'XUẤT KHO' }}
+    </td>
+  </tr>
+  <tr>
+    <td style="border:none">
+      <strong>Khách hàng:</strong> {{ order.customer.name }}
+    </td>
+    <td style="border:none">
+      <strong>Điện thoại:</strong> {{ order.customer.phone or '—' }}
+    </td>
+  </tr>
+  <tr>
+    <td style="border:none">
+      <strong>Vị trí kho:</strong>
+      {{ order.slot.code ~ ' — ' ~ order.slot.zone.name if order.slot else '—' }}
+    </td>
+    <td style="border:none">
+      <strong>Tài xế / Người giao:</strong> {{ order.driver_name or '—' }}
+    </td>
+  </tr>
+  <tr>
+    <td style="border:none">
+      <strong>Biển số xe:</strong> {{ order.vehicle_plate or '—' }}
+    </td>
+    <td style="border:none">
+      <strong>Ngày hoàn thành:</strong>
+      {{ order.completed_at.strftime('%H:%M ngày %d/%m/%Y') if order.completed_at else '—' }}
+    </td>
+  </tr>
+</table>
+
+<p><strong>DANH SÁCH HÀNG HÓA:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th style="width:40px">STT</th>
+      <th>Tên hàng hóa</th>
+      <th style="width:80px">Mã vạch</th>
+      <th style="width:70px">Số lượng</th>
+      <th style="width:60px">ĐVT</th>
+      <th style="width:80px">KL (kg)</th>
+      <th style="width:80px">TT (m³)</th>
+      <th>Ghi chú</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in order.items %}
+    <tr>
+      <td style="text-align:center">{{ loop.index }}</td>
+      <td>{{ item.goods_name }}</td>
+      <td style="font-size:10pt">{{ item.barcode or '' }}</td>
+      <td style="text-align:center">{{ item.quantity }}</td>
+      <td style="text-align:center">{{ item.unit }}</td>
+      <td style="text-align:right">{{ '{:,.1f}'.format(item.weight_kg) if item.weight_kg else '' }}</td>
+      <td style="text-align:right">{{ '{:,.2f}'.format(item.volume_m3) if item.volume_m3 else '' }}</td>
+      <td>{{ item.notes or '' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if order.notes %}
+<p><strong>Ghi chú:</strong> {{ order.notes }}</p>
+{% endif %}
+
+<p style="margin-top:16px">
+  Hai bên đã kiểm tra hàng hóa và xác nhận đúng với danh sách trên.
+</p>
+
+<div class="sign-area">
+  <div class="sign-box">
+    <div><em>Thủ kho / Người giao hàng</em></div>
+    <div class="sign-line">Ký tên, đóng dấu</div>
+  </div>
+  <div class="sign-box">
+    <div><em>Tài xế / Người nhận hàng</em></div>
+    <div class="sign-line">{{ order.driver_name or 'Ký tên' }}</div>
+  </div>
+</div>
+
+<div style="margin-top:32px;text-align:center">
+  <button onclick="window.print()"
+          style="padding:8px 24px;background:#378ADD;color:#fff;border:none;border-radius:6px;font-size:13pt;cursor:pointer">
+    🖨 In biên bản
+  </button>
+  <button onclick="window.close()"
+          style="padding:8px 24px;background:#eee;border:none;border-radius:6px;font-size:13pt;cursor:pointer;margin-left:12px">
+    Đóng
+  </button>
+</div>
+</body>
+</html>

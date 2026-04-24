@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}{{ contract.code }}{% endblock %}
+{% block page_title %}Chi tiết hợp đồng {{ contract.code }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('contracts.index') }}" class="btn">← Quay lại</a>
+{% if current_user.is_admin() and contract.status != 'expired' %}
+<a href="{{ url_for('contracts.edit', contract_id=contract.id) }}" class="btn">Chỉnh sửa</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="grid-2">
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Thông tin hợp đồng</span></div>
+    <div class="panel-body">
+      <table style="width:100%">
+        {% macro row(label, value) %}
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;padding:7px 0;width:160px">{{ label }}</td>
+          <td style="font-size:13px">{{ value }}</td>
+        </tr>
+        {% endmacro %}
+        {{ row('Mã hợp đồng', contract.code) }}
+        {{ row('Khách hàng', contract.customer.name) }}
+        {{ row('Ngày bắt đầu', contract.start_date.strftime('%d/%m/%Y')) }}
+        {{ row('Ngày hết hạn', contract.end_date.strftime('%d/%m/%Y')) }}
+        {{ row('Đơn giá/tháng', '{:,.0f} đ'.format(contract.monthly_rate)) }}
+        {{ row('Tổng giá trị', '{:,.0f} đ'.format(contract.total_value or 0)) }}
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;padding:7px 0">Trạng thái</td>
+          <td>
+            <span class="badge
+              {{ 'badge-success' if contract.status=='active'
+                 else 'badge-warning' if contract.status=='expiring'
+                 else 'badge-secondary' }}">
+              {{ 'Đang hiệu lực' if contract.status=='active'
+              else 'Sắp hết hạn' if contract.status=='expiring'
+              else 'Đã hết hạn' }}
+            </span>
+          </td>
+        </tr>
+        {% if contract.notes %}
+        {{ row('Ghi chú', contract.notes) }}
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Vị trí kho đang thuê</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Mã vị trí</th>
+            <th>Khu vực</th>
+            <th>Loại hàng</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cs in contract.slots %}
+          <tr>
+            <td><strong>{{ cs.slot.code }}</strong></td>
+            <td>{{ cs.slot.zone.name }}</td>
+            <td>{{ cs.goods_type or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" style="text-align:center;padding:16px;color:var(--text-muted)">Chưa có vị trí</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Hóa đơn liên quan -->
+<div class="panel mt-16">
+  <div class="panel-header">
+    <span class="panel-title">Hóa đơn</span>
+    {% if current_user.is_admin() %}
+    <a href="{{ url_for('billing.create') }}?contract_id={{ contract.id }}" class="btn btn-sm btn-primary">+ Tạo hóa
+      đơn</a>
+    {% endif %}
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã HĐ</th>
+          <th>Kỳ</th>
+          <th>Tổng tiền</th>
+          <th>Hạn TT</th>
+          <th>Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in contract.invoices %}
+        <tr>
+          <td><a href="{{ url_for('billing.detail', invoice_id=inv.id) }}" style="color:var(--blue)">{{ inv.code }}</a>
+          </td>
+          <td style="font-size:12px">{{ inv.period_start.strftime('%d/%m/%Y') }} — {{
+            inv.period_end.strftime('%d/%m/%Y') }}</td>
+          <td>{{ '{:,.0f}'.format(inv.total_amount) }} đ</td>
+          <td>{{ inv.due_date.strftime('%d/%m/%Y') if inv.due_date else '—' }}</td>
+          <td>
+            <span class="badge
+              {{ 'badge-success' if inv.status=='paid'
+                 else 'badge-danger' if inv.status=='overdue'
+                 else 'badge-warning' }}">
+              {{ 'Đã TT' if inv.status=='paid' else 'Quá hạn' if inv.status=='overdue' else 'Còn nợ' }}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" style="text-align:center;padding:16px;color:var(--text-muted)">Chưa có hóa đơn</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

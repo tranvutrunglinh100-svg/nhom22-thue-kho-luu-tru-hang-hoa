@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% block title %}Báo cáo{% endblock %}
+{% block page_title %}Báo cáo & Thống kê{% endblock %}
+
+{% block topbar_actions %}
+  <form method="GET" style="display:flex;gap:8px;align-items:center">
+    <label style="font-size:12px;color:var(--text-muted)">Tháng</label>
+    <select name="month" class="search-input" style="width:80px" onchange="this.form.submit()">
+      {% for m in range(1,13) %}
+      <option value="{{ m }}" {{ 'selected' if m==month }}>T{{ m }}</option>
+      {% endfor %}
+    </select>
+    <select name="year" class="search-input" style="width:90px" onchange="this.form.submit()">
+      {% for y in range(2024, 2028) %}
+      <option value="{{ y }}" {{ 'selected' if y==year }}>{{ y }}</option>
+      {% endfor %}
+    </select>
+  </form>
+{% endblock %}
+
+{% block content %}
+
+<!-- Tổng hợp tháng -->
+<div class="stat-cards">
+  <div class="stat-card green">
+    <div class="stat-label">Doanh thu tháng {{ month }}/{{ year }}</div>
+    <div class="stat-value">{{ '{:,.1f}'.format(summary.total_revenue / 1000000) }} tr</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-label">Tỷ lệ lấp đầy hiện tại</div>
+    <div class="stat-value">{{ summary.overall_occupancy }}%</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Lệnh nhập hàng</div>
+    <div class="stat-value">{{ summary.total_inbound }}</div>
+    <div class="stat-sub">Hoàn thành trong tháng</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Lệnh xuất hàng</div>
+    <div class="stat-value">{{ summary.total_outbound }}</div>
+    <div class="stat-sub">Hoàn thành trong tháng</div>
+  </div>
+</div>
+
+<!-- Charts row -->
+<div class="grid-2 mb-16">
+
+  <!-- Biểu đồ doanh thu 12 tháng -->
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Doanh thu 12 tháng gần nhất (triệu đồng)</span></div>
+    <div class="panel-body">
+      <canvas id="revenueChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- Tỷ lệ lấp đầy theo khu vực -->
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Tỷ lệ lấp đầy theo khu vực</span></div>
+    <div class="panel-body">
+      <canvas id="occupancyChart" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Doanh thu theo khách hàng -->
+<div class="grid-2 mb-16">
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Top khách hàng theo doanh thu</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Khách hàng</th><th>Doanh thu (đ)</th></tr>
+        </thead>
+        <tbody>
+          {% for name, total in revenue_by_customer %}
+          <tr>
+            <td>{{ name }}</td>
+            <td><strong>{{ '{:,.0f}'.format(total) }}</strong></td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="2" style="text-align:center;color:var(--text-muted);padding:20px">
+              Chưa có dữ liệu
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tỷ lệ lấp đầy bảng -->
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Chi tiết lấp đầy theo khu vực</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Khu vực</th><th>Tổng</th><th>Đang thuê</th><th>Trống</th><th>Tỷ lệ</th></tr>
+        </thead>
+        <tbody>
+          {% for z in occupancy_data %}
+          <tr>
+            <td><strong>{{ z.zone }}</strong></td>
+            <td>{{ z.total }}</td>
+            <td style="color:var(--blue-dark)">{{ z.rented }}</td>
+            <td style="color:var(--green)">{{ z.empty }}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+                  <div style="height:100%;width:{{ z.rate }}%;background:var(--blue);border-radius:3px"></div>
+                </div>
+                <span style="font-size:12px;font-weight:600;min-width:36px">{{ z.rate }}%</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Audit Log -->
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-title">Lịch sử nhập / xuất hàng (Audit Log)</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã lệnh</th><th>Loại</th><th>Khách hàng</th>
+          <th>Vị trí</th><th>Ngày tạo</th><th>Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in recent_orders %}
+        <tr>
+          <td>
+            <a href="{{ url_for('logistics.detail', order_id=o.id) }}"
+               style="color:var(--blue)">{{ o.code }}</a>
+          </td>
+          <td>
+            <span class="badge {{ 'badge-success' if o.order_type=='inbound' else 'badge-warning' }}">
+              {{ o.type_label }}
+            </span>
+          </td>
+          <td>{{ o.customer.name }}</td>
+          <td>{{ o.slot.code if o.slot else '—' }}</td>
+          <td>{{ o.created_at.strftime('%H:%M %d/%m/%Y') }}</td>
+          <td>
+            <span class="badge
+              {{ 'badge-warning' if o.status=='pending'
+                 else 'badge-info' if o.status=='processing'
+                 else 'badge-success' if o.status=='done'
+                 else 'badge-secondary' }}">
+              {{ {'pending':'Chờ xử lý','processing':'Đang xếp',
+                  'done':'Hoàn thành','cancelled':'Đã huỷ'}[o.status] }}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">
+            Chưa có dữ liệu
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const revenueData = {{ monthly_revenue | tojson }};
+const occupancyData = {{ occupancy_data | tojson }};
+
+// Biểu đồ doanh thu
+new Chart(document.getElementById('revenueChart'), {
+  type: 'bar',
+  data: {
+    labels: revenueData.map(d => d.month),
+    datasets: [{
+      label: 'Doanh thu (tr đ)',
+      data: revenueData.map(d => d.revenue),
+      backgroundColor: 'rgba(55, 138, 221, 0.7)',
+      borderColor: '#378ADD',
+      borderWidth: 1,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// Biểu đồ lấp đầy
+new Chart(document.getElementById('occupancyChart'), {
+  type: 'bar',
+  data: {
+    labels: occupancyData.map(d => d.zone),
+    datasets: [
+      {
+        label: 'Đang thuê',
+        data: occupancyData.map(d => d.rented),
+        backgroundColor: 'rgba(55, 138, 221, 0.8)',
+        borderRadius: 4,
+      },
+      {
+        label: 'Trống',
+        data: occupancyData.map(d => d.empty),
+        backgroundColor: 'rgba(192, 221, 151, 0.8)',
+        borderRadius: 4,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      x: { stacked: true, grid: { display: false } },
+      y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }
+    }
+  }
+});
+</script>
+{% endblock %}

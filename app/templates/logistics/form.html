@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% block title %}Tạo lệnh mới{% endblock %}
+{% block page_title %}{{ 'Chỉnh sửa lệnh' if order else 'Tạo lệnh nhập / xuất mới' }}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('logistics.index') }}" class="btn">← Quay lại</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('logistics.create') }}">
+<div class="grid-2">
+
+  <!-- Thông tin lệnh -->
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Thông tin lệnh</span></div>
+    <div class="panel-body">
+      <div class="form-group">
+        <label class="form-label">Loại lệnh *</label>
+        <div style="display:flex;gap:12px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+            <input type="radio" name="order_type" value="inbound"
+                   {{ 'checked' if not order or order.order_type=='inbound' }} required>
+            <span class="badge badge-success" style="font-size:13px;padding:4px 12px">NHẬP hàng</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+            <input type="radio" name="order_type" value="outbound"
+                   {{ 'checked' if order and order.order_type=='outbound' }}>
+            <span class="badge badge-warning" style="font-size:13px;padding:4px 12px">XUẤT hàng</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Khách hàng *</label>
+        <select name="customer_id" class="form-control" required>
+          <option value="">— Chọn khách hàng —</option>
+          {% for c in customers %}
+          <option value="{{ c.id }}"
+            {{ 'selected' if order and order.customer_id == c.id }}>
+            {{ c.name }} ({{ c.code }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Vị trí kho</label>
+        <select name="slot_id" class="form-control">
+          <option value="">— Chưa xác định —</option>
+          {% for s in slots %}
+          <option value="{{ s.id }}"
+            {{ 'selected' if order and order.slot_id == s.id }}>
+            {{ s.code }} — {{ s.zone.name }} ({{ s.status }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Ngày dự kiến</label>
+          <input type="date" name="scheduled_date" class="form-control"
+                 value="{{ order.scheduled_date.isoformat() if order and order.scheduled_date else '' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Biển số xe</label>
+          <input type="text" name="vehicle_plate" class="form-control"
+                 placeholder="VD: 51A-12345"
+                 value="{{ order.vehicle_plate if order else '' }}">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tên tài xế / người giao nhận</label>
+        <input type="text" name="driver_name" class="form-control"
+               placeholder="Nhập tên tài xế"
+               value="{{ order.driver_name if order else '' }}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Ghi chú</label>
+        <textarea name="notes" class="form-control"
+                  placeholder="Ghi chú đặc biệt về lô hàng...">{{ order.notes if order else '' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Danh sách hàng hóa -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Danh sách hàng hóa</span>
+      <button type="button" onclick="addOrderItem()" class="btn btn-sm btn-primary">+ Thêm dòng</button>
+    </div>
+    <div class="panel-body">
+      <div style="display:grid;grid-template-columns:110px 1fr 60px 60px 70px 70px 28px;gap:4px;margin-bottom:6px">
+        <span style="font-size:11px;color:var(--text-muted);font-weight:600">Mã vạch</span>
+        <span style="font-size:11px;color:var(--text-muted);font-weight:600">Tên hàng *</span>
+        <span style="font-size:11px;color:var(--text-muted);font-weight:600">SL</span>
+        <span style="font-size:11px;color:var(--text-muted);font-weight:600">ĐVT</span>
+        <span style="font-size:11px;color:var(--text-muted);font-weight:600">KG</span>
+        <span style="font-size:11px;color:var(--text-muted);font-weight:600">m³</span>
+        <span></span>
+      </div>
+
+      <div id="order-items">
+        <!-- Dòng đầu tiên mặc định -->
+        <div class="order-item-row" style="display:grid;grid-template-columns:110px 1fr 60px 60px 70px 70px 28px;gap:4px;margin-bottom:6px">
+          <input type="text"   name="barcodes"    placeholder="Mã vạch"  class="form-control">
+          <input type="text"   name="goods_names" placeholder="Tên hàng" class="form-control" required>
+          <input type="number" name="quantities"  value="1" min="1"      class="form-control">
+          <input type="text"   name="units"       value="thùng"          class="form-control">
+          <input type="number" name="weights"     placeholder="0" step="0.1" class="form-control">
+          <input type="number" name="volumes"     placeholder="0" step="0.01" class="form-control">
+          <button type="button" onclick="this.closest('.order-item-row').remove()"
+                  style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px">✕</button>
+        </div>
+      </div>
+
+      <p style="font-size:11px;color:var(--text-muted);margin-top:8px">
+        💡 Mã vạch sẽ được dùng để xác nhận khi quét QR Code lúc bốc xếp.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+  <a href="{{ url_for('logistics.index') }}" class="btn">Huỷ</a>
+  <button type="submit" class="btn btn-primary">Tạo lệnh</button>
+</div>
+</form>
+{% endblock %}

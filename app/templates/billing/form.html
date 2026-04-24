@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}Tạo hóa đơn{% endblock %}
+{% block page_title %}Tạo hóa đơn mới{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('billing.index') }}" class="btn">← Quay lại</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST">
+<div class="grid-2">
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Thông tin hóa đơn</span></div>
+    <div class="panel-body">
+
+      <div class="form-group">
+        <label class="form-label">Hợp đồng *</label>
+        <select name="contract_id" class="form-control" required id="contract_select">
+          <option value="">— Chọn hợp đồng —</option>
+          {% for c in contracts %}
+          <option value="{{ c.id }}"
+            data-rate="{{ c.monthly_rate }}"
+            {{ 'selected' if request.args.get('contract_id')|int == c.id }}>
+            {{ c.code }} — {{ c.customer.name }}
+            ({{ '{:,.0f}'.format(c.monthly_rate) }} đ/tháng)
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Kỳ từ ngày *</label>
+          <input type="date" name="period_start" class="form-control"
+                 id="period_start" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Kỳ đến ngày *</label>
+          <input type="date" name="period_end" class="form-control"
+                 id="period_end" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Đơn giá / tháng (đ)</label>
+        <input type="number" name="monthly_rate" class="form-control"
+               id="monthly_rate" placeholder="Lấy từ hợp đồng" readonly
+               style="background:var(--gray-bg)">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tiền dịch vụ phát sinh (đ)</label>
+        <input type="number" name="service_amount" id="service_amount"
+               class="form-control" value="0" min="0" step="100000">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Hạn thanh toán</label>
+        <input type="date" name="due_date" class="form-control" id="due_date">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Ghi chú</label>
+        <textarea name="notes" class="form-control" placeholder="Ghi chú hóa đơn..."></textarea>
+      </div>
+
+      <!-- Preview -->
+      <div style="background:var(--blue-bg);border-radius:var(--radius);padding:12px;font-size:13px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <span style="color:var(--text-muted)">Tiền thuê cơ bản</span>
+          <span id="base_preview">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <span style="color:var(--text-muted)">Tiền dịch vụ</span>
+          <span id="svc_preview">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-weight:600;border-top:1px solid rgba(0,0,0,0.1);padding-top:6px">
+          <span>Tổng cộng</span>
+          <span id="total_preview" style="color:var(--blue-dark)">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+  <a href="{{ url_for('billing.index') }}" class="btn">Huỷ</a>
+  <button type="submit" class="btn btn-primary">Tạo hóa đơn</button>
+</div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const contractSel = document.getElementById('contract_select');
+const rateInput   = document.getElementById('monthly_rate');
+const startInput  = document.getElementById('period_start');
+const endInput    = document.getElementById('period_end');
+const svcInput    = document.getElementById('service_amount');
+const dueInput    = document.getElementById('due_date');
+
+contractSel?.addEventListener('change', function() {
+  const opt = this.options[this.selectedIndex];
+  const rate = parseFloat(opt.dataset.rate) || 0;
+  if (rateInput) rateInput.value = rate;
+  recalcInvoice();
+});
+
+function recalcInvoice() {
+  const rate    = parseFloat(rateInput?.value) || 0;
+  const service = parseFloat(svcInput?.value)  || 0;
+  const start   = new Date(startInput?.value);
+  const end     = new Date(endInput?.value);
+
+  const basePrev  = document.getElementById('base_preview');
+  const svcPrev   = document.getElementById('svc_preview');
+  const totalPrev = document.getElementById('total_preview');
+
+  if (!rate || isNaN(start) || isNaN(end)) return;
+
+  const days  = Math.max(1, Math.round((end - start) / 86400000) + 1);
+  const base  = Math.round(rate / 30 * days);
+  const total = base + service;
+  const fmt   = v => new Intl.NumberFormat('vi-VN').format(v) + ' đ';
+
+  if (basePrev)  basePrev.textContent  = fmt(base);
+  if (svcPrev)   svcPrev.textContent   = fmt(service);
+  if (totalPrev) totalPrev.textContent = fmt(total);
+
+  // Gợi ý hạn thanh toán = cuối kỳ + 15 ngày
+  if (!dueInput?.value && !isNaN(end)) {
+    const due = new Date(end);
+    due.setDate(due.getDate() + 15);
+    dueInput.value = due.toISOString().split('T')[0];
+  }
+}
+
+[rateInput, startInput, endInput, svcInput].forEach(el =>
+  el?.addEventListener('input', recalcInvoice)
+);
+</script>
+{% endblock %}

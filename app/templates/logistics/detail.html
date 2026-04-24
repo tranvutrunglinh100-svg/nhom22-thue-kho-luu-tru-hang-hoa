@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block title %}{{ order.code }}{% endblock %}
+{% block page_title %}Chi tiết lệnh {{ order.code }}{% endblock %}
+
+{% set label, color = STATUS_LABELS[order.status] %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('logistics.index') }}" class="btn">← Quay lại</a>
+  {% if order.status == 'pending' %}
+    <form method="POST" action="{{ url_for('logistics.approve', order_id=order.id) }}" style="display:inline">
+      <button type="submit" class="btn btn-primary">✓ Duyệt lệnh</button>
+    </form>
+    <form method="POST" action="{{ url_for('logistics.cancel', order_id=order.id) }}" style="display:inline">
+      <button type="submit" class="btn btn-danger"
+              onclick="return confirm('Huỷ lệnh này?')">✕ Huỷ</button>
+    </form>
+  {% elif order.status == 'processing' %}
+    <form method="POST" action="{{ url_for('logistics.complete', order_id=order.id) }}" style="display:inline">
+      <button type="submit" class="btn btn-success">✓ Hoàn thành</button>
+    </form>
+  {% elif order.status == 'done' %}
+    <a href="{{ url_for('logistics.print_handover', order_id=order.id) }}"
+       class="btn" target="_blank">🖨 In biên bản</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="grid-2">
+
+  <!-- Thông tin lệnh -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Thông tin lệnh</span>
+      <span class="badge badge-{{ color }}">{{ label }}</span>
+    </div>
+    <div class="panel-body">
+      <table style="width:100%">
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;padding:6px 0;width:140px">Mã lệnh</td>
+          <td style="font-weight:600">{{ order.code }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;padding:6px 0">Loại</td>
+          <td>
+            <span class="badge {{ 'badge-success' if order.order_type=='inbound' else 'badge-warning' }}">
+              {{ order.type_label }}
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;padding:6px 0">Khách hàng</td>
+          <td>{{ order.customer.name }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;padding:6px 0">Vị trí kho</td>
+          <td>{{ order.slot.code ~ ' — ' ~ order.slot.zone.name if order.slot else '—' }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;padding:6px 0">Ngày yêu cầu</td>
+          <td>{{ order.request_date.strftime('%d/%m/%Y') }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;padding:6px 0">Ngày dự kiến</td>
+          <td>{{ order.scheduled_date.strftime('%d/%m/%Y') if order.scheduled_date else '—' }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;padding:6px 0">Tài xế</td>
+          <td>{{ order.driver_name or '—' }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;padding:6px 0">Biển số xe</td>
+          <td>{{ order.vehicle_plate or '—' }}</td>
+        </tr>
+        {% if order.notes %}
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;padding:6px 0">Ghi chú</td>
+          <td>{{ order.notes }}</td>
+        </tr>
+        {% endif %}
+        {% if order.completed_at %}
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;padding:6px 0">Hoàn thành lúc</td>
+          <td>{{ order.completed_at.strftime('%H:%M %d/%m/%Y') }}</td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+  <!-- Quét mã vạch -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Quét mã vạch / QR</span>
+    </div>
+    <div class="panel-body">
+      <div class="form-group">
+        <label class="form-label">Nhập hoặc quét mã</label>
+        <input type="text" id="barcode-input" class="form-control"
+               placeholder="Đưa đầu đọc mã vạch vào đây..."
+               data-order-id="{{ order.id }}"
+               onchange="handleBarcodeInput(this)"
+               {{ 'disabled' if order.status != 'processing' }}>
+      </div>
+      <div id="scan-result"></div>
+      {% if order.status != 'processing' %}
+      <p style="font-size:12px;color:var(--text-muted)">
+        Chức năng quét mã chỉ khả dụng khi lệnh đang ở trạng thái <strong>Đang bốc xếp</strong>.
+      </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Danh sách hàng hóa -->
+<div class="panel mt-16">
+  <div class="panel-header">
+    <span class="panel-title">Danh sách hàng hóa ({{ order.items.count() }} mặt hàng)</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Mã vạch</th>
+          <th>Tên hàng hóa</th>
+          <th>Số lượng</th>
+          <th>ĐVT</th>
+          <th>Khối lượng (kg)</th>
+          <th>Thể tích (m³)</th>
+          <th>Ghi chú</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in order.items %}
+        <tr>
+          <td style="color:var(--text-muted)">{{ loop.index }}</td>
+          <td><code style="font-size:12px">{{ item.barcode or '—' }}</code></td>
+          <td><strong>{{ item.goods_name }}</strong></td>
+          <td>{{ item.quantity }}</td>
+          <td>{{ item.unit }}</td>
+          <td>{{ '{:,.1f}'.format(item.weight_kg) if item.weight_kg else '—' }}</td>
+          <td>{{ '{:,.2f}'.format(item.volume_m3) if item.volume_m3 else '—' }}</td>
+          <td style="color:var(--text-muted)">{{ item.notes or '' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted)">
+            Chưa có mặt hàng nào
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

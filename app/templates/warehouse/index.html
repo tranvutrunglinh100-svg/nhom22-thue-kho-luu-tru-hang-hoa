@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% block title %}Sơ đồ kho{% endblock %}
+{% block page_title %}Sơ đồ kho tổng thể{% endblock %}
+
+{% block topbar_actions %}
+  {% if current_user.is_admin() %}
+  <a href="{{ url_for('warehouse.slot_create') }}" class="btn btn-primary">+ Thêm vị trí</a>
+  <a href="{{ url_for('warehouse.zone_create') }}" class="btn">+ Tạo khu vực</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+
+<!-- Thống kê nhanh -->
+<div class="stat-cards" style="grid-template-columns:repeat(5,1fr)">
+  <div class="stat-card">
+    <div class="stat-label">Tổng vị trí</div>
+    <div class="stat-value">{{ stats.total }}</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-label">Trống</div>
+    <div class="stat-value">{{ stats.empty }}</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-label">Đang thuê</div>
+    <div class="stat-value">{{ stats.rented }}</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-label">Bảo trì</div>
+    <div class="stat-value">{{ stats.maintain }}</div>
+  </div>
+  <div class="stat-card" style="border-color:#F4C0D1">
+    <div class="stat-label">Cần vệ sinh</div>
+    <div class="stat-value" style="color:var(--pink)">{{ stats.cleaning }}</div>
+  </div>
+</div>
+
+<!-- Bộ lọc -->
+<div class="filter-bar mb-16">
+  <div class="filter-tabs">
+    <a href="{{ url_for('warehouse.index') }}"
+       class="filter-tab {{ 'active' if selected_zone=='all' }}">Tất cả</a>
+    {% for zone in zones %}
+    <a href="{{ url_for('warehouse.index', zone=zone.code) }}"
+       class="filter-tab {{ 'active' if selected_zone==zone.code }}">
+      {{ zone.name }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- Chú thích -->
+  <div class="legend-row" style="margin-left:auto">
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--green-bg);border:1px solid #C0DD97"></div> Trống
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--blue-bg);border:1px solid #B5D4F4"></div> Đang thuê
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--amber-bg);border:1px solid #FAC775"></div> Bảo trì
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--pink-bg);border:1px solid #F4C0D1"></div> Cần vệ sinh
+    </div>
+  </div>
+</div>
+
+<!-- Sơ đồ kho -->
+<div class="zone-grid">
+  {% for zone in zones %}
+    {% if selected_zone == 'all' or selected_zone == zone.code %}
+    <div class="zone-panel">
+      <div class="zone-header">
+        <div>
+          <div class="zone-name">{{ zone.name }}</div>
+          <div class="zone-desc">{{ zone.description }} · {{ zone.total_slots }} vị trí · {{ zone.occupancy_rate }}% lấp đầy</div>
+        </div>
+        {% if current_user.is_admin() %}
+        <a href="{{ url_for('warehouse.zone_edit', zone_id=zone.id) }}" class="btn btn-sm">Sửa</a>
+        {% endif %}
+      </div>
+      <div class="zone-body">
+        <div class="slots-grid">
+          {% for slot in zone.slots %}
+          <div class="slot-cell slot-{{ slot.status }}"
+               onclick="loadSlotDetail({{ slot.id }})"
+               title="{{ slot.code }} — {{ status_labels[slot.status][0] }}">
+            {{ slot.code }}
+          </div>
+          {% else %}
+          <div style="grid-column:1/-1;text-align:center;color:var(--text-muted);font-size:12px;padding:16px">
+            Chưa có vị trí nào
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  {% else %}
+  <div style="text-align:center;color:var(--text-muted);padding:40px">
+    Chưa có khu vực nào. <a href="{{ url_for('warehouse.zone_create') }}">Tạo khu vực đầu tiên</a>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Modal chi tiết ô kho -->
+<div class="modal-overlay" id="slot-modal">
+  <div class="modal">
+    <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between">
+      <div class="modal-title">Chi tiết vị trí <span id="m-code"></span></div>
+      <button onclick="closeModal('slot-modal')" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-muted)">×</button>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Khu vực</span>
+      <span id="m-zone"></span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Tình trạng</span>
+      <span id="m-status-badge" class="badge"></span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Vị trí kệ</span>
+      <span id="m-location"></span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Diện tích</span>
+      <span id="m-area"></span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Thể tích</span>
+      <span id="m-volume"></span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Khách hàng</span>
+      <span id="m-tenant"></span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Loại hàng</span>
+      <span id="m-goods"></span>
+    </div>
+    <div class="modal-footer">
+      {% if current_user.is_admin() %}
+      <button class="btn btn-sm" onclick="
+        const code = document.getElementById('m-code').textContent;
+        window.location.href = '/warehouse/slots';">
+        Quản lý vị trí
+      </button>
+      {% endif %}
+      <button class="btn btn-primary btn-sm" onclick="closeModal('slot-modal')">Đóng</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

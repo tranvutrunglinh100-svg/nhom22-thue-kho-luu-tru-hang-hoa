@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Khách hàng{% endblock %}
+{% block page_title %}Danh sách khách hàng{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('contracts.customer_create') }}" class="btn btn-primary">+ Thêm khách hàng</a>
+{% endblock %}
+
+{% block content %}
+<div class="filter-bar">
+  <form method="GET">
+    <input type="text" name="search" value="{{ search }}" class="search-input" placeholder="Tìm tên, mã khách hàng...">
+  </form>
+</div>
+
+<div class="panel">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã KH</th>
+          <th>Tên công ty</th>
+          <th>Mã số thuế</th>
+          <th>Người liên hệ</th>
+          <th>Điện thoại</th>
+          <th>Email</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in customers %}
+        <tr>
+          <td><strong>{{ c.code }}</strong></td>
+          <td>{{ c.name }}</td>
+          <td>{{ c.tax_code or '—' }}</td>
+          <td>{{ c.contact_name or '—' }}</td>
+          <td>{{ c.phone or '—' }}</td>
+          <td>{{ c.email or '—' }}</td>
+          <td>
+            <a href="{{ url_for('contracts.customer_edit', cid=c.id) }}" class="btn btn-sm">Sửa</a>
+            <a href="{{ url_for('contracts.index') }}?search={{ c.name }}" class="btn btn-sm">HĐ</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">
+            Chưa có khách hàng nào
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

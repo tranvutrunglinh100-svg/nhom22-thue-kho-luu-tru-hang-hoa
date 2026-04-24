@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}Hợp đồng{% endblock %}
+{% block page_title %}Quản lý hợp đồng{% endblock %}
+
+{% block topbar_actions %}
+  {% if current_user.is_admin() %}
+  <a href="{{ url_for('contracts.create') }}" class="btn btn-primary">+ Tạo hợp đồng</a>
+  {% endif %}
+  <a href="{{ url_for('contracts.customer_list') }}" class="btn">Khách hàng</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats -->
+<div class="stat-cards" style="grid-template-columns:repeat(3,1fr)">
+  <div class="stat-card green">
+    <div class="stat-label">Đang hiệu lực</div>
+    <div class="stat-value">{{ stats.active }}</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-label">Sắp hết hạn</div>
+    <div class="stat-value">{{ stats.expiring }}</div>
+    <div class="stat-sub">Trong vòng 30 ngày</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Đã hết hạn</div>
+    <div class="stat-value" style="color:var(--text-muted)">{{ stats.expired }}</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar">
+  <div class="filter-tabs">
+    <a href="{{ url_for('contracts.index') }}"
+       class="filter-tab {{ 'active' if status_filter=='all' }}">Tất cả</a>
+    <a href="{{ url_for('contracts.index', status='active') }}"
+       class="filter-tab {{ 'active' if status_filter=='active' }}">Hiệu lực</a>
+    <a href="{{ url_for('contracts.index', status='expiring') }}"
+       class="filter-tab {{ 'active' if status_filter=='expiring' }}">Sắp hết hạn</a>
+    <a href="{{ url_for('contracts.index', status='expired') }}"
+       class="filter-tab {{ 'active' if status_filter=='expired' }}">Hết hạn</a>
+  </div>
+  <form method="GET" style="margin-left:auto">
+    <input type="hidden" name="status" value="{{ status_filter }}">
+    <input type="text" name="search" value="{{ search }}"
+           class="search-input" placeholder="Tìm mã HĐ, tên khách hàng...">
+  </form>
+</div>
+
+<!-- Contract list (card layout) -->
+<div style="display:flex;flex-direction:column;gap:10px">
+  {% for c in contracts %}
+  {% set days = c.days_until_expiry %}
+  <div class="panel" style="{{ 'border-color:#F7C1C1' if c.status=='expiring' else '' }}">
+    <div style="padding:14px 16px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <div style="font-weight:600;font-size:14px">
+            {{ c.code }}
+            {% if c.status == 'expiring' %}
+            <span style="font-size:11px;color:var(--red);margin-left:6px">⚠ Còn {{ days }} ngày</span>
+            {% endif %}
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+            {{ c.customer.name }} — {{ c.slots.count() }} vị trí kho
+          </div>
+        </div>
+        <span class="badge
+          {{ 'badge-success' if c.status=='active'
+             else 'badge-warning' if c.status=='expiring'
+             else 'badge-secondary' }}">
+          {{ 'Đang hiệu lực' if c.status=='active'
+             else 'Sắp hết hạn' if c.status=='expiring'
+             else 'Đã hết hạn' }}
+        </span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+        <div>
+          <div style="font-size:11px;color:var(--text-muted)">Ngày bắt đầu</div>
+          <div style="font-size:13px;font-weight:500">{{ c.start_date.strftime('%d/%m/%Y') }}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-muted)">Ngày hết hạn</div>
+          <div style="font-size:13px;font-weight:500">{{ c.end_date.strftime('%d/%m/%Y') }}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-muted)">Đơn giá / tháng</div>
+          <div style="font-size:13px;font-weight:500">{{ '{:,.0f}'.format(c.monthly_rate) }} đ</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-muted)">Tổng giá trị HĐ</div>
+          <div style="font-size:13px;font-weight:500">{{ '{:,.0f}'.format(c.total_value or 0) }} đ</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+        <a href="{{ url_for('contracts.detail', contract_id=c.id) }}" class="btn btn-sm">Chi tiết</a>
+        {% if current_user.is_admin() and c.status != 'expired' %}
+        <a href="{{ url_for('contracts.edit', contract_id=c.id) }}" class="btn btn-sm">Sửa</a>
+        <form method="POST" action="{{ url_for('contracts.terminate', contract_id=c.id) }}"
+              style="display:inline">
+          <button type="submit" class="btn btn-sm btn-danger"
+                  onclick="return confirm('Kết thúc hợp đồng {{ c.code }}?')">
+            Kết thúc HĐ
+          </button>
+        </form>
+        {% endif %}
+        {% if current_user.is_admin() %}
+        <a href="{{ url_for('billing.create') }}?contract_id={{ c.id }}" class="btn btn-sm">
+          Tạo hóa đơn
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:48px;color:var(--text-muted)">
+    Không có hợp đồng nào.
+    {% if current_user.is_admin() %}
+    <a href="{{ url_for('contracts.create') }}">Tạo hợp đồng đầu tiên</a>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

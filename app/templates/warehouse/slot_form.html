@@ -1,0 +1,65 @@
+<!-- slot_form.html -->
+{% extends 'base.html' %}
+{% block title %}{{ 'Sửa' if slot else 'Thêm' }} vị trí{% endblock %}
+{% block page_title %}{{ 'Chỉnh sửa' if slot else 'Thêm' }} vị trí lưu trữ{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('warehouse.slot_list') }}" class="btn">← Quay lại</a>{% endblock %}
+{% block content %}
+<div style="max-width:500px">
+  <div class="panel">
+    <div class="panel-body">
+      <form method="POST">
+        {% if not slot %}
+        <div class="form-group">
+          <label class="form-label">Mã vị trí *</label>
+          <input type="text" name="code" class="form-control" required placeholder="A09" maxlength="10">
+        </div>
+        {% endif %}
+        <div class="form-group">
+          <label class="form-label">Khu vực *</label>
+          <select name="zone_id" class="form-control" required>
+            {% for z in zones %}<option value="{{ z.id }}" {{ 'selected' if slot and slot.zone_id==z.id }}>{{ z.name }}
+            </option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Dãy kệ</label>
+            <input type="number" name="row_number" class="form-control" min="1"
+              value="{{ slot.row_number if slot else 1 }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tầng</label>
+            <input type="number" name="floor_number" class="form-control" min="1"
+              value="{{ slot.floor_number if slot else 1 }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Diện tích (m²)</label>
+            <input type="number" name="area_m2" class="form-control" min="0" step="0.1"
+              value="{{ slot.area_m2 if slot else 0 }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Thể tích (m³)</label>
+            <input type="number" name="volume_m3" class="form-control" min="0" step="0.1"
+              value="{{ slot.volume_m3 if slot else 0 }}">
+          </div>
+        </div>
+        {% if slot %}
+        <div class="form-group">
+          <label class="form-label">Trạng thái</label>
+          <select name="status" class="form-control">
+            {% for key, (label, color) in status_labels.items() %}
+            <option value="{{ key }}" {{ 'selected' if slot.status==key }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        <div class="form-group">
+          <label class="form-label">Ghi chú</label>
+          <textarea name="notes" class="form-control">{{ slot.notes if slot else '' }}</textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">Lưu</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

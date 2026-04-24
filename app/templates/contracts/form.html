@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Sửa HĐ' if contract else 'Tạo hợp đồng' }}{% endblock %}
+{% block page_title %}{{ 'Chỉnh sửa hợp đồng' if contract else 'Tạo hợp đồng mới' }}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('contracts.index') }}" class="btn">← Quay lại</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST">
+<div class="grid-2">
+
+  <!-- Thông tin hợp đồng -->
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Thông tin hợp đồng</span></div>
+    <div class="panel-body">
+
+      <div class="form-group">
+        <label class="form-label">Khách hàng *</label>
+        <select name="customer_id" class="form-control" required
+                {{ 'disabled' if contract }}>
+          <option value="">— Chọn khách hàng —</option>
+          {% for c in customers %}
+          <option value="{{ c.id }}"
+            {{ 'selected' if contract and contract.customer_id == c.id }}>
+            {{ c.name }} ({{ c.code }})
+          </option>
+          {% endfor %}
+        </select>
+        {% if contract %}
+        <input type="hidden" name="customer_id" value="{{ contract.customer_id }}">
+        {% endif %}
+      </div>
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Ngày bắt đầu *</label>
+          <input type="date" name="start_date" class="form-control" required
+                 value="{{ contract.start_date.isoformat() if contract else '' }}"
+                 {{ 'disabled' if contract }}>
+          {% if contract %}
+          <input type="hidden" name="start_date" value="{{ contract.start_date.isoformat() }}">
+          {% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ngày hết hạn *</label>
+          <input type="date" name="end_date" class="form-control" required
+                 value="{{ contract.end_date.isoformat() if contract else '' }}">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Đơn giá thuê / tháng (đ) *</label>
+        <input type="number" name="monthly_rate" class="form-control"
+               placeholder="VD: 15000000" min="0" step="100000" required
+               value="{{ contract.monthly_rate if contract else '' }}"
+               id="monthly_rate">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Ghi chú</label>
+        <textarea name="notes" class="form-control"
+                  placeholder="Điều khoản bổ sung...">{{ contract.notes if contract else '' }}</textarea>
+      </div>
+
+      <!-- Preview tổng giá trị -->
+      <div style="background:var(--blue-bg);border-radius:var(--radius);padding:12px;font-size:13px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:var(--text-muted)">Tiền thuê cơ bản (dự kiến)</span>
+          <strong id="base_preview">—</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span style="color:var(--text-muted)">Tổng giá trị hợp đồng</span>
+          <strong id="total_preview" style="color:var(--blue-dark)">—</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chọn vị trí kho -->
+  {% if not contract %}
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Vị trí kho đăng ký thuê</span>
+    </div>
+    <div class="panel-body">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">
+        Chọn một hoặc nhiều vị trí trống. Ghi loại hàng hóa cho từng vị trí.
+      </p>
+
+      {% for slot in available_slots %}
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <input type="checkbox" name="slot_ids" value="{{ slot.id }}"
+               id="slot_{{ slot.id }}">
+        <label for="slot_{{ slot.id }}" style="font-size:13px;font-weight:500;min-width:50px;cursor:pointer">
+          {{ slot.code }}
+        </label>
+        <span style="font-size:11px;color:var(--text-muted)">
+          {{ slot.zone.name }} · {{ slot.volume_m3 }} m³
+        </span>
+        <input type="text" name="goods_types"
+               placeholder="Loại hàng hóa"
+               class="form-control" style="flex:1;font-size:12px">
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:24px;color:var(--text-muted)">
+        Không có vị trí trống. Vui lòng kiểm tra lại sơ đồ kho.
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+  <a href="{{ url_for('contracts.index') }}" class="btn">Huỷ</a>
+  <button type="submit" class="btn btn-primary">
+    {{ 'Cập nhật hợp đồng' if contract else 'Tạo hợp đồng' }}
+  </button>
+</div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Tính tổng giá trị hợp đồng khi nhập
+const monthlyInput = document.getElementById('monthly_rate');
+const startInput   = document.getElementById('start_date') ||
+                     document.querySelector('input[name="start_date"]');
+const endInput     = document.querySelector('input[name="end_date"]');
+const totalPrev    = document.getElementById('total_preview');
+const basePrev     = document.getElementById('base_preview');
+
+function calcContract() {
+  const rate  = parseFloat(monthlyInput?.value) || 0;
+  const start = new Date(startInput?.value);
+  const end   = new Date(endInput?.value);
+  if (!rate || isNaN(start) || isNaN(end)) {
+    if (totalPrev) totalPrev.textContent = '—';
+    return;
+  }
+  const months = (end.getFullYear() - start.getFullYear()) * 12 +
+                 (end.getMonth() - start.getMonth()) + 1;
+  const total  = rate * Math.max(1, months);
+  if (basePrev)  basePrev.textContent  = new Intl.NumberFormat('vi-VN').format(rate) + ' đ/tháng';
+  if (totalPrev) totalPrev.textContent = new Intl.NumberFormat('vi-VN').format(total) + ' đ';
+}
+monthlyInput?.addEventListener('input', calcContract);
+endInput?.addEventListener('change', calcContract);
+calcContract();
+</script>
+{% endblock %}

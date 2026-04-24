@@ -1,0 +1,61 @@
+<!-- slot_list.html -->
+{% extends 'base.html' %}
+{% block title %}Vị trí kho{% endblock %}
+{% block page_title %}Danh sách vị trí lưu trữ{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('warehouse.slot_create') }}" class="btn btn-primary">+ Thêm vị trí</a>
+<a href="{{ url_for('warehouse.index') }}" class="btn">Xem sơ đồ</a>
+{% endblock %}
+{% block content %}
+<div class="filter-bar">
+  <form method="GET" style="display:flex;gap:8px">
+    <select name="zone_id" class="search-input" onchange="this.form.submit()">
+      <option value="">Tất cả khu vực</option>
+      {% for z in zones %}<option value="{{ z.id }}" {{ 'selected' if request.args.get('zone_id')|int==z.id }}>{{ z.name
+        }}</option>{% endfor %}
+    </select>
+    <select name="status" class="search-input" onchange="this.form.submit()">
+      <option value="">Tất cả trạng thái</option>
+      <option value="empty" {{ 'selected' if request.args.get('status')=='empty' }}>Trống</option>
+      <option value="rented" {{ 'selected' if request.args.get('status')=='rented' }}>Đang thuê</option>
+      <option value="maintenance" {{ 'selected' if request.args.get('status')=='maintenance' }}>Bảo trì</option>
+      <option value="cleaning" {{ 'selected' if request.args.get('status')=='cleaning' }}>Cần vệ sinh</option>
+    </select>
+    <input type="text" name="search" value="{{ request.args.get('search','') }}" class="search-input"
+      placeholder="Tìm mã vị trí...">
+  </form>
+</div>
+<div class="panel">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã</th>
+          <th>Khu vực</th>
+          <th>Kệ</th>
+          <th>Tầng</th>
+          <th>Diện tích</th>
+          <th>Thể tích</th>
+          <th>Trạng thái</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in slots %}
+        {% set label, color = status_labels[s.status] %}
+        <tr>
+          <td><strong>{{ s.code }}</strong></td>
+          <td>{{ s.zone.name }}</td>
+          <td>{{ s.row_number }}</td>
+          <td>{{ s.floor_number }}</td>
+          <td>{{ s.area_m2 }} m²</td>
+          <td>{{ s.volume_m3 }} m³</td>
+          <td><span class="badge badge-{{ color }}">{{ label }}</span></td>
+          <td><a href="{{ url_for('warehouse.slot_edit', slot_id=s.id) }}" class="btn btn-sm">Sửa</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

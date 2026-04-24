@@ -1,0 +1,35 @@
+<!-- services.html -->
+{% extends 'base.html' %}
+{% block title %}Dịch vụ{% endblock %}
+{% block page_title %}Danh mục dịch vụ{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('contracts.service_create') }}" class="btn btn-primary">+ Thêm dịch vụ</a>
+{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Tên dịch vụ</th>
+          <th>Đơn vị</th>
+          <th>Đơn giá (đ)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in services %}
+        <tr>
+          <td>{{ s.name }}</td>
+          <td>{{ s.unit }}</td>
+          <td>{{ '{:,.0f}'.format(s.unit_price) }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3" style="text-align:center;padding:24px;color:var(--text-muted)">Chưa có dịch vụ</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

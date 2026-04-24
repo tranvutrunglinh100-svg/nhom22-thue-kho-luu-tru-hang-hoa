@@ -1,0 +1,30 @@
+<!-- service_form.html -->
+{% extends 'base.html' %}
+{% block title %}Thêm dịch vụ{% endblock %}
+{% block page_title %}Thêm dịch vụ mới{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('contracts.service_list') }}" class="btn">← Quay lại</a>
+{% endblock %}
+{% block content %}
+<div style="max-width:420px">
+  <div class="panel">
+    <div class="panel-body">
+      <form method="POST">
+        <div class="form-group">
+          <label class="form-label">Tên dịch vụ *</label>
+          <input type="text" name="name" class="form-control" required placeholder="Bốc xếp hàng hóa">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Đơn vị</label>
+          <input type="text" name="unit" class="form-control" placeholder="lần / thùng / kg">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Đơn giá (đ)</label>
+          <input type="number" name="unit_price" class="form-control" value="0" min="0" step="1000">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">Lưu dịch vụ</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

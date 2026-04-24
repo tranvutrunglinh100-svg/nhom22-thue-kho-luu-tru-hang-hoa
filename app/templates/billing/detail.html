@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}{{ invoice.code }}{% endblock %}
+{% block page_title %}Hóa đơn {{ invoice.code }}{% endblock %}
+
+{% set label, color = STATUS_LABELS[invoice.status] %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('billing.index') }}" class="btn">← Quay lại</a>
+  {% if invoice.status != 'paid' %}
+  <a href="{{ url_for('billing.record_payment', invoice_id=invoice.id) }}"
+     class="btn btn-primary">💳 Ghi nhận thanh toán</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="grid-2">
+
+  <!-- Chi tiết hóa đơn -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Chi tiết hóa đơn</span>
+      <span class="badge badge-{{ color }}">{{ label }}</span>
+    </div>
+    <div class="panel-body">
+      <table style="width:100%">
+        {% macro row(label, value) %}
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;padding:6px 0;width:160px">{{ label }}</td>
+          <td style="font-size:13px">{{ value }}</td>
+        </tr>
+        {% endmacro %}
+
+        {{ row('Mã hóa đơn', invoice.code) }}
+        {{ row('Hợp đồng', invoice.contract.code) }}
+        {{ row('Khách hàng', invoice.contract.customer.name) }}
+        {{ row('Kỳ thanh toán',
+               invoice.period_start.strftime('%d/%m/%Y') ~ ' — ' ~
+               invoice.period_end.strftime('%d/%m/%Y')) }}
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;padding:6px 0">Tiền thuê</td>
+          <td>{{ '{:,.0f}'.format(invoice.base_amount) }} đ</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;padding:6px 0">Tiền dịch vụ</td>
+          <td>{{ '{:,.0f}'.format(invoice.service_amount) }} đ</td>
+        </tr>
+        <tr style="border-top:1px solid var(--border)">
+          <td style="font-size:13px;font-weight:600;padding:8px 0">Tổng cộng</td>
+          <td style="font-size:16px;font-weight:700;color:var(--blue-dark)">
+            {{ '{:,.0f}'.format(invoice.total_amount) }} đ
+          </td>
+        </tr>
+        {{ row('Hạn thanh toán',
+               invoice.due_date.strftime('%d/%m/%Y') if invoice.due_date else '—') }}
+        {% if invoice.paid_date %}
+        {{ row('Ngày thanh toán', invoice.paid_date.strftime('%d/%m/%Y')) }}
+        {% endif %}
+        {% if invoice.notes %}
+        {{ row('Ghi chú', invoice.notes) }}
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+  <!-- Lịch sử thanh toán -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Lịch sử thanh toán</span>
+    </div>
+    {% if invoice.payments.count() %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Ngày</th><th>Số tiền</th><th>Phương thức</th><th>Mã GD</th></tr>
+        </thead>
+        <tbody>
+          {% for p in invoice.payments %}
+          <tr>
+            <td>{{ p.paid_at.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td><strong>{{ '{:,.0f}'.format(p.amount) }} đ</strong></td>
+            <td>{{ p.method }}</td>
+            <td style="font-size:12px;color:var(--text-muted)">{{ p.reference or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="panel-body" style="text-align:center;color:var(--text-muted)">
+      Chưa có thanh toán nào
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

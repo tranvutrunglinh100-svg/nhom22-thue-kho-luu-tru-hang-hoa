@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Sửa' if user else 'Thêm' }} người dùng{% endblock %}
+{% block page_title %}{{ 'Chỉnh sửa' if user else 'Thêm mới' }} người dùng{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('auth.user_list') }}" class="btn">← Quay lại</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:520px">
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Thông tin tài khoản</span></div>
+    <div class="panel-body">
+      <form method="POST">
+
+        {% if not user %}
+        <div class="form-group">
+          <label class="form-label">Tên đăng nhập *</label>
+          <input type="text" name="username" class="form-control" placeholder="VD: nhanvien01" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email *</label>
+          <input type="email" name="email" class="form-control" placeholder="VD: nv01@wareflow.vn" required>
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+          <label class="form-label">Họ và tên</label>
+          <input type="text" name="full_name" class="form-control" value="{{ user.full_name if user else '' }}"
+            placeholder="Nguyễn Văn A">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Số điện thoại</label>
+          <input type="text" name="phone" class="form-control" value="{{ user.phone if user else '' }}"
+            placeholder="0901234567">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Vai trò</label>
+          <select name="role" class="form-control">
+            <option value="staff" {{ 'selected' if user and user.role=='staff' }}>Nhân viên</option>
+            <option value="admin" {{ 'selected' if user and user.role=='admin' }}>Admin</option>
+            <option value="customer" {{ 'selected' if user and user.role=='customer' }}>Khách hàng</option>
+          </select>
+        </div>
+
+        {% if user %}
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+            <input type="checkbox" name="is_active" {{ 'checked' if user.is_active }}>
+            Tài khoản đang hoạt động
+          </label>
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+          <label class="form-label">
+            {{ 'Mật khẩu mới (để trống nếu không đổi)' if user else 'Mật khẩu *' }}
+          </label>
+          <input type="password" name="{{ 'new_password' if user else 'password' }}" class="form-control"
+            placeholder="••••••••" {{ 'required' if not user }}>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <a href="{{ url_for('auth.user_list') }}" class="btn" style="flex:1;justify-content:center">Huỷ</a>
+          <button type="submit" class="btn btn-primary" style="flex:2;justify-content:center">
+            {{ 'Cập nhật' if user else 'Tạo tài khoản' }}
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

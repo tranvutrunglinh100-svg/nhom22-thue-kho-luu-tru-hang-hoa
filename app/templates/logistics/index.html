@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block title %}Nhập / Xuất hàng{% endblock %}
+{% block page_title %}Quản lý nhập / xuất hàng hóa{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('logistics.create') }}" class="btn btn-primary">+ Tạo lệnh mới</a>
+  <a href="{{ url_for('logistics.index') }}?export=1" class="btn">Xuất Excel</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stat cards -->
+<div class="stat-cards" style="grid-template-columns:repeat(3,1fr)">
+  <div class="stat-card amber">
+    <div class="stat-label">Chờ xử lý</div>
+    <div class="stat-value">{{ stats.pending }}</div>
+    <div class="stat-sub">Cần duyệt</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-label">Đang bốc xếp</div>
+    <div class="stat-value">{{ stats.processing }}</div>
+    <div class="stat-sub">Đang thực hiện</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-label">Hoàn thành hôm nay</div>
+    <div class="stat-value">{{ stats.done_today }}</div>
+    <div class="stat-sub">Lệnh</div>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<div class="filter-bar">
+  <div class="filter-tabs">
+    <a href="{{ url_for('logistics.index') }}"
+       class="filter-tab {{ 'active' if status_filter=='all' }}">Tất cả</a>
+    <a href="{{ url_for('logistics.index', status='pending') }}"
+       class="filter-tab {{ 'active' if status_filter=='pending' }}">Chờ xử lý</a>
+    <a href="{{ url_for('logistics.index', status='processing') }}"
+       class="filter-tab {{ 'active' if status_filter=='processing' }}">Đang bốc xếp</a>
+    <a href="{{ url_for('logistics.index', status='done') }}"
+       class="filter-tab {{ 'active' if status_filter=='done' }}">Hoàn thành</a>
+    <a href="{{ url_for('logistics.index', status='cancelled') }}"
+       class="filter-tab {{ 'active' if status_filter=='cancelled' }}">Đã huỷ</a>
+  </div>
+
+  <div class="filter-tabs" style="margin-left:8px">
+    <a href="{{ url_for('logistics.index', status=status_filter) }}"
+       class="filter-tab {{ 'active' if type_filter=='all' }}">Nhập & Xuất</a>
+    <a href="{{ url_for('logistics.index', status=status_filter, type='inbound') }}"
+       class="filter-tab {{ 'active' if type_filter=='inbound' }}">Nhập</a>
+    <a href="{{ url_for('logistics.index', status=status_filter, type='outbound') }}"
+       class="filter-tab {{ 'active' if type_filter=='outbound' }}">Xuất</a>
+  </div>
+
+  <form method="GET" style="margin-left:auto">
+    <input type="hidden" name="status" value="{{ status_filter }}">
+    <input type="hidden" name="type"   value="{{ type_filter }}">
+    <input type="text" name="search" value="{{ search }}"
+           class="search-input" placeholder="Tìm mã lệnh, khách hàng...">
+  </form>
+</div>
+
+<!-- Table -->
+<div class="panel">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã lệnh</th>
+          <th>Loại</th>
+          <th>Khách hàng</th>
+          <th>Vị trí</th>
+          <th>Ngày yêu cầu</th>
+          <th>Dự kiến</th>
+          <th>Trạng thái</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders.items %}
+        {% set label, color = STATUS_LABELS[order.status] %}
+        <tr>
+          <td><strong>{{ order.code }}</strong></td>
+          <td>
+            <span class="badge {{ 'badge-success' if order.order_type=='inbound' else 'badge-warning' }}">
+              {{ order.type_label }}
+            </span>
+          </td>
+          <td>{{ order.customer.name }}</td>
+          <td>{{ order.slot.code if order.slot else '—' }}</td>
+          <td>{{ order.request_date.strftime('%d/%m/%Y') }}</td>
+          <td>{{ order.scheduled_date.strftime('%d/%m/%Y') if order.scheduled_date else '—' }}</td>
+          <td><span class="badge badge-{{ color }}">{{ label }}</span></td>
+          <td>
+            <a href="{{ url_for('logistics.detail', order_id=order.id) }}" class="btn btn-sm">Chi tiết</a>
+            {% if order.status == 'pending' %}
+              <form method="POST" action="{{ url_for('logistics.approve', order_id=order.id) }}"
+                    style="display:inline">
+                <button type="submit" class="btn btn-sm btn-primary">Duyệt</button>
+              </form>
+            {% elif order.status == 'done' %}
+              <a href="{{ url_for('logistics.print_handover', order_id=order.id) }}"
+                 class="btn btn-sm" target="_blank">In BB</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted)">
+            Không có lệnh nào phù hợp
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if orders.pages > 1 %}
+  <div style="padding:12px 16px;border-top:1px solid var(--border)">
+    <div class="pagination">
+      {% if orders.has_prev %}
+      <a href="{{ url_for('logistics.index', page=orders.prev_num, status=status_filter, type=type_filter, search=search) }}"
+         class="page-link">← Trước</a>
+      {% endif %}
+      {% for p in orders.iter_pages() %}
+        {% if p %}
+        <a href="{{ url_for('logistics.index', page=p, status=status_filter, type=type_filter, search=search) }}"
+           class="page-link {{ 'active' if p == orders.page }}">{{ p }}</a>
+        {% else %}
+        <span class="page-link">…</span>
+        {% endif %}
+      {% endfor %}
+      {% if orders.has_next %}
+      <a href="{{ url_for('logistics.index', page=orders.next_num, status=status_filter, type=type_filter, search=search) }}"
+         class="page-link">Sau →</a>
+      {% endif %}
+      <span style="margin-left:8px;font-size:12px;color:var(--text-muted)">
+        {{ orders.total }} lệnh
+      </span>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

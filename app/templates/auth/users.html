@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Người dùng{% endblock %}
+{% block page_title %}Quản lý người dùng{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('auth.user_create') }}" class="btn btn-primary">+ Thêm người dùng</a>
+{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Tên đăng nhập</th>
+          <th>Họ tên</th>
+          <th>Email</th>
+          <th>Điện thoại</th>
+          <th>Vai trò</th>
+          <th>Trạng thái</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td><strong>{{ user.username }}</strong></td>
+          <td>{{ user.full_name or '—' }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.phone or '—' }}</td>
+          <td>
+            <span class="badge {{ 'badge-info' if user.role == 'admin' else 'badge-secondary' }}">
+              {{ 'Admin' if user.role == 'admin' else 'Nhân viên' }}
+            </span>
+          </td>
+          <td>
+            <span class="badge {{ 'badge-success' if user.is_active else 'badge-danger' }}">
+              {{ 'Hoạt động' if user.is_active else 'Khoá' }}
+            </span>
+          </td>
+          <td>
+            <a href="{{ url_for('auth.user_edit', user_id=user.id) }}" class="btn btn-sm">Sửa</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

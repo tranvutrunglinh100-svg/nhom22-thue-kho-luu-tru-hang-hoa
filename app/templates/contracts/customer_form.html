@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Sửa' if customer else 'Thêm' }} khách hàng{% endblock %}
+{% block page_title %}{{ 'Chỉnh sửa' if customer else 'Thêm' }} khách hàng{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('contracts.customer_list') }}" class="btn">← Quay lại</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:520px">
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Thông tin khách hàng</span></div>
+    <div class="panel-body">
+      <form method="POST">
+        <div class="form-group">
+          <label class="form-label">Tên công ty / Khách hàng *</label>
+          <input type="text" name="name" class="form-control" required value="{{ customer.name if customer else '' }}"
+            placeholder="Công ty TNHH ABC">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mã số thuế</label>
+          <input type="text" name="tax_code" class="form-control" value="{{ customer.tax_code if customer else '' }}"
+            placeholder="0101234567">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Địa chỉ</label>
+          <input type="text" name="address" class="form-control" value="{{ customer.address if customer else '' }}"
+            placeholder="123 Nguyễn Văn Linh, Q.7, TP.HCM">
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Người liên hệ</label>
+            <input type="text" name="contact_name" class="form-control"
+              value="{{ customer.contact_name if customer else '' }}" placeholder="Nguyễn Văn A">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Điện thoại</label>
+            <input type="text" name="phone" class="form-control" value="{{ customer.phone if customer else '' }}"
+              placeholder="0901234567">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control" value="{{ customer.email if customer else '' }}"
+            placeholder="contact@company.vn">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <a href="{{ url_for('contracts.customer_list') }}" class="btn" style="flex:1;justify-content:center">Huỷ</a>
+          <button type="submit" class="btn btn-primary" style="flex:2;justify-content:center">
+            {{ 'Cập nhật' if customer else 'Thêm khách hàng' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
