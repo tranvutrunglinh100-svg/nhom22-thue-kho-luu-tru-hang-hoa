@@ -128,7 +128,7 @@ Mở trình duyệt: **http://127.0.0.1:5000**
 ## Tài khoản mặc định
 
 | Vai trò    | Tên đăng nhập | Mật khẩu  | Phần quyền |
-|------------|---------------|-----------|
+|------------|---------------|-----------|------------|
 | Admin      | `admin`       | `admin123`| xem được tất cả. |
 | Nhân viên 1 | `nhanvien`    | `nhanvien123`| NV1Khách hàng, Hợp đồng, Tài chính (thanh toán), Xuất hàng. |
 | Nhân viên 2 | `nhanvien`    | `nhanvien123`| NV2Sơ đồ kho, Khu vực, Slot (thêm/sửa/xóa). |
