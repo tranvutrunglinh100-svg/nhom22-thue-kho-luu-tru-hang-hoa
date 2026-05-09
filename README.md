@@ -1,4 +1,7 @@
 # <img width="150" height="52" alt="image" src="https://github.com/user-attachments/assets/5a700bfc-1d01-41c5-a837-d7888722ddc7" />
+--
+## Giới Thiệu
+--
 WareFlow — Phần mềm Quản lý thuê Kho lưu trữ Hàng hóa
 Hệ thống quản lý thuê kho lưu trữ hàng hóa (Warehouse Management System - WMS) là một giải pháp công nghệ giúp các doanh nghiệp hoặc cá nhân quản lý mọi hoạt động liên quan đến việc ký gửi, lưu giữ và luân chuyển hàng hóa trong kho một cách tự động và khoa học.
 
