@@ -37,12 +37,12 @@ Hệ thống quản lý dịch vụ cho thuê kho lưu trữ hàng hóa.
 Xây dựng bằng **Python (Flask)** + **SQLite** + **HTML/CSS/JS**.
 
 ---
-👨‍💻 Thành viên nhóm
+## 👨‍💻 Thành viên nhóm
 Trần Vũ Trung Linh – Trưởng nhóm (Leader)
 Nguyễn Xuân Trường – Thành viên
 
 
-🛠️ Công nghệ sử dụng
+## 🛠️ Công nghệ sử dụng
 Ngôn ngữ lập trình: Python, js (backend)
 Giao diện: html , css (frontend)
 Cơ sở dữ liệu: (SQLite viewer / phpmyadmin )
