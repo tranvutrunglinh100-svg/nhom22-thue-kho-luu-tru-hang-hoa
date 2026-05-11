@@ -38,7 +38,8 @@ Xây dựng bằng **Python (Flask)** + **SQLite** + **HTML/CSS/JS**.
 
 ---
 ## 👨‍💻 Thành viên nhóm
-Trần Vũ Trung Linh – Trưởng nhóm (Leader)
+Trần Vũ Trung Linh – Trưởng nhóm (Leader)-
+
 Nguyễn Xuân Trường – Thành viên
 
 
