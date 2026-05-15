@@ -131,9 +131,9 @@ Mở trình duyệt: **http://127.0.0.1:5000**
 | Vai trò    | Tên đăng nhập | Mật khẩu  | Phân quyền |
 |------------|---------------|-----------|------------|
 | Admin      | `admin`       | `admin123`| `xem được tất cả.` |
-| Nhân viên 1 | `nhanvien`    | `nhanvien123`| `NV1Khách hàng, Hợp đồng, Tài chính (thanh toán), Xuất hàng.` |
-| Nhân viên 2 | `nhanvien`    | `nhanvien123`| `NV2Sơ đồ kho, Khu vực, Slot.` |
-| Nhân viên 3 | `nhanvien`    | `nhanvien123`| `NV3Báo cáo doanh thu.` |
+| Nhân viên 1 | `nhanvien1`    | `nhanvien123`| `NV1Khách hàng, Hợp đồng, Tài chính (thanh toán), Xuất hàng.` |
+| Nhân viên 2 | `nhanvien2`    | `nhanvien123`| `NV2Sơ đồ kho, Khu vực, Slot.` |
+| Nhân viên 3 | `nhanvien3`    | `nhanvien123`| `NV3Báo cáo doanh thu.` |
 ---
 
 ## Các tính năng chính
