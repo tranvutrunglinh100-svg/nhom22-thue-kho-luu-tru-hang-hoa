@@ -47,30 +47,78 @@
 
   <!-- Biểu đồ doanh thu 12 tháng -->
   <div class="panel">
-    <div class="panel-header"><span class="panel-title">Doanh thu 12 tháng gần nhất (triệu đồng)</span></div>
+    <div class="panel-header">
+      <span class="panel-title">Doanh thu 12 tháng gần nhất (triệu đồng)</span>
+    </div>
     <div class="panel-body">
       <canvas id="revenueChart" height="200"></canvas>
     </div>
   </div>
 
-  <!-- Tỷ lệ lấp đầy theo khu vực -->
+  <!-- Biểu đồ tỷ lệ lấp đầy theo thời gian -->
   <div class="panel">
-    <div class="panel-header"><span class="panel-title">Tỷ lệ lấp đầy theo khu vực</span></div>
-    <div class="panel-body">
+    <div class="panel-header"
+         style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span class="panel-title">Tỷ lệ lấp đầy theo khu vực (%)</span>
+
+      <div style="display:flex;gap:6px;align-items:center">
+        <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden">
+          <button id="btn-year" type="button" onclick="switchOccupancyMode('year')"
+                  style="padding:4px 12px;font-size:12px;font-weight:600;border:none;cursor:pointer;
+                         background:var(--blue);color:#fff;transition:all .2s">
+            Theo tháng
+          </button>
+          <button id="btn-day" type="button" onclick="switchOccupancyMode('day')"
+                  style="padding:4px 12px;font-size:12px;font-weight:600;border:none;cursor:pointer;
+                         background:var(--bg-card);color:var(--text-muted);transition:all .2s">
+            Theo ngày
+          </button>
+        </div>
+
+        <select id="occ-year" class="search-input"
+                style="width:82px;font-size:12px" onchange="reloadOccupancy()">
+          {% for y in range(2024, 2028) %}
+          <option value="{{ y }}" {{ 'selected' if y==year }}>{{ y }}</option>
+          {% endfor %}
+        </select>
+
+        <select id="occ-month" class="search-input"
+                style="width:72px;font-size:12px;display:none" onchange="reloadOccupancy()">
+          {% for m in range(1,13) %}
+          <option value="{{ m }}" {{ 'selected' if m==month }}>T{{ m }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="panel-body" style="position:relative;min-height:220px">
+      <!-- Loading: display:none mặc định, dùng JS để bật/tắt -->
+      <div id="occ-loading"
+           style="display:none;position:absolute;inset:0;
+                  background:rgba(255,255,255,.75);
+                  align-items:center;justify-content:center;
+                  font-size:13px;color:var(--text-muted);
+                  z-index:10;border-radius:4px">
+        Đang tải...
+      </div>
+      <div id="occ-error"
+           style="display:none;position:absolute;inset:0;
+                  align-items:center;justify-content:center;
+                  font-size:13px;color:#D9534F;z-index:10">
+        Không thể tải dữ liệu. Kiểm tra Console để biết thêm.
+      </div>
       <canvas id="occupancyChart" height="200"></canvas>
     </div>
   </div>
 </div>
 
-<!-- Doanh thu theo khách hàng -->
+<!-- Doanh thu theo khách hàng + chi tiết lấp đầy -->
 <div class="grid-2 mb-16">
   <div class="panel">
     <div class="panel-header"><span class="panel-title">Top khách hàng theo doanh thu</span></div>
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr><th>Khách hàng</th><th>Doanh thu (đ)</th></tr>
-        </thead>
+        <thead><tr><th>Khách hàng</th><th>Doanh thu (đ)</th></tr></thead>
         <tbody>
           {% for name, total in revenue_by_customer %}
           <tr>
@@ -79,7 +127,8 @@
           </tr>
           {% else %}
           <tr>
-            <td colspan="2" style="text-align:center;color:var(--text-muted);padding:20px">
+            <td colspan="2"
+                style="text-align:center;color:var(--text-muted);padding:20px">
               Chưa có dữ liệu
             </td>
           </tr>
@@ -89,13 +138,17 @@
     </div>
   </div>
 
-  <!-- Tỷ lệ lấp đầy bảng -->
   <div class="panel">
-    <div class="panel-header"><span class="panel-title">Chi tiết lấp đầy theo khu vực</span></div>
+    <div class="panel-header">
+      <span class="panel-title">Chi tiết lấp đầy theo khu vực</span>
+    </div>
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Khu vực</th><th>Tổng</th><th>Đang thuê</th><th>Trống</th><th>Tỷ lệ</th></tr>
+          <tr>
+            <th>Khu vực</th><th>Tổng</th>
+            <th>Đang thuê</th><th>Trống</th><th>Tỷ lệ</th>
+          </tr>
         </thead>
         <tbody>
           {% for z in occupancy_data %}
@@ -106,10 +159,14 @@
             <td style="color:var(--green)">{{ z.empty }}</td>
             <td>
               <div style="display:flex;align-items:center;gap:8px">
-                <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
-                  <div style="height:100%;width:{{ z.rate }}%;background:var(--blue);border-radius:3px"></div>
+                <div style="flex:1;height:6px;background:var(--border);
+                            border-radius:3px;overflow:hidden">
+                  <div style="height:100%;width:{{ z.rate }}%;
+                              background:var(--blue);border-radius:3px"></div>
                 </div>
-                <span style="font-size:12px;font-weight:600;min-width:36px">{{ z.rate }}%</span>
+                <span style="font-size:12px;font-weight:600;min-width:36px">
+                  {{ z.rate }}%
+                </span>
               </div>
             </td>
           </tr>
@@ -141,7 +198,8 @@
                style="color:var(--blue)">{{ o.code }}</a>
           </td>
           <td>
-            <span class="badge {{ 'badge-success' if o.order_type=='inbound' else 'badge-warning' }}">
+            <span class="badge
+              {{ 'badge-success' if o.order_type=='inbound' else 'badge-warning' }}">
               {{ o.type_label }}
             </span>
           </td>
@@ -150,9 +208,9 @@
           <td>{{ o.created_at.strftime('%H:%M %d/%m/%Y') }}</td>
           <td>
             <span class="badge
-              {{ 'badge-warning' if o.status=='pending'
-                 else 'badge-info' if o.status=='processing'
-                 else 'badge-success' if o.status=='done'
+              {{ 'badge-warning'   if o.status=='pending'
+                 else 'badge-info'      if o.status=='processing'
+                 else 'badge-success'   if o.status=='done'
                  else 'badge-secondary' }}">
               {{ {'pending':'Chờ xử lý','processing':'Đang xếp',
                   'done':'Hoàn thành','cancelled':'Đã huỷ'}[o.status] }}
@@ -161,7 +219,8 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">
+          <td colspan="6"
+              style="text-align:center;padding:24px;color:var(--text-muted)">
             Chưa có dữ liệu
           </td>
         </tr>
@@ -177,17 +236,24 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
 const revenueData = {{ monthly_revenue | tojson }};
-const occupancyData = {{ occupancy_data | tojson }};
 
-// Biểu đồ doanh thu
+const ZONE_COLORS = [
+  { border: '#378ADD', bg: 'rgba(55,138,221,0.12)'  },
+  { border: '#5CB85C', bg: 'rgba(92,184,92,0.12)'   },
+  { border: '#F0AD4E', bg: 'rgba(240,173,78,0.12)'  },
+  { border: '#D9534F', bg: 'rgba(217,83,79,0.12)'   },
+  { border: '#9B59B6', bg: 'rgba(155,89,182,0.12)'  },
+];
+
+// ── Biểu đồ doanh thu ─────────────────────────────────────
 new Chart(document.getElementById('revenueChart'), {
   type: 'bar',
   data: {
     labels: revenueData.map(d => d.month),
     datasets: [{
       label: 'Doanh thu (tr đ)',
-      data: revenueData.map(d => d.revenue),
-      backgroundColor: 'rgba(55, 138, 221, 0.7)',
+      data:  revenueData.map(d => d.revenue),
+      backgroundColor: 'rgba(55,138,221,0.7)',
       borderColor: '#378ADD',
       borderWidth: 1,
       borderRadius: 4,
@@ -203,33 +269,107 @@ new Chart(document.getElementById('revenueChart'), {
   }
 });
 
-// Biểu đồ lấp đầy
-new Chart(document.getElementById('occupancyChart'), {
-  type: 'bar',
-  data: {
-    labels: occupancyData.map(d => d.zone),
-    datasets: [
-      {
-        label: 'Đang thuê',
-        data: occupancyData.map(d => d.rented),
-        backgroundColor: 'rgba(55, 138, 221, 0.8)',
-        borderRadius: 4,
+// ── Biểu đồ lấp đầy ───────────────────────────────────────
+let occChart = null;
+let occMode  = 'year';
+
+function setEl(id, prop, val) {
+  document.getElementById(id).style[prop] = val;
+}
+
+function showOccLoading(on) { setEl('occ-loading', 'display', on ? 'flex' : 'none'); }
+function showOccError(on)   { setEl('occ-error',   'display', on ? 'flex' : 'none'); }
+
+function buildOccupancyChart(apiData) {
+  showOccError(false);
+  if (!apiData || apiData.length === 0) { showOccError(true); return; }
+
+  const labels    = apiData.map(d => d.label);
+  const zoneNames = Object.keys(apiData[0].zones);
+
+  const datasets = zoneNames.map((name, i) => {
+    const c = ZONE_COLORS[i % ZONE_COLORS.length];
+    return {
+      label: name,
+      data:  apiData.map(d => d.zones[name] ?? 0),
+      borderColor: c.border,
+      backgroundColor: c.bg,
+      borderWidth: 2,
+      pointRadius:      occMode === 'day' ? 2 : 4,
+      pointHoverRadius: 6,
+      fill: true,
+      tension: 0.35,
+    };
+  });
+
+  if (occChart) { occChart.destroy(); occChart = null; }
+
+  occChart = new Chart(document.getElementById('occupancyChart'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'top',
+                  labels: { boxWidth: 12, font: { size: 12 } } },
+        tooltip: {
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}%` }
+        }
       },
-      {
-        label: 'Trống',
-        data: occupancyData.map(d => d.empty),
-        backgroundColor: 'rgba(192, 221, 151, 0.8)',
-        borderRadius: 4,
+      scales: {
+        y: {
+          beginAtZero: true, max: 100,
+          ticks: { callback: v => v + '%', stepSize: 20 },
+          grid:  { color: 'rgba(0,0,0,0.05)' }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { maxTicksLimit: occMode === 'day' ? 10 : 12 }
+        }
       }
-    ]
-  },
-  options: {
-    responsive: true,
-    scales: {
-      x: { stacked: true, grid: { display: false } },
-      y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }
     }
+  });
+}
+
+async function reloadOccupancy() {
+  const yr = document.getElementById('occ-year').value;
+  const mo = document.getElementById('occ-month').value;
+  showOccLoading(true);
+  showOccError(false);
+
+  try {
+    const url = occMode === 'year'
+      ? `/reports/api/occupancy-by-year?year=${yr}`
+      : `/reports/api/occupancy-by-day?year=${yr}&month=${mo}`;
+
+    const res = await fetch(url, { credentials: 'same-origin' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    buildOccupancyChart(data);
+  } catch (err) {
+    console.error('[Occupancy chart error]', err);
+    showOccError(true);
+  } finally {
+    showOccLoading(false);
   }
-});
+}
+
+function switchOccupancyMode(mode) {
+  occMode = mode;
+  const active   = mode === 'year' ? 'btn-year' : 'btn-day';
+  const inactive = mode === 'year' ? 'btn-day'  : 'btn-year';
+
+  document.getElementById(active).style.background   = 'var(--blue)';
+  document.getElementById(active).style.color        = '#fff';
+  document.getElementById(inactive).style.background = 'var(--bg-card)';
+  document.getElementById(inactive).style.color      = 'var(--text-muted)';
+  document.getElementById('occ-month').style.display = mode === 'day' ? '' : 'none';
+
+  reloadOccupancy();
+}
+
+// Gọi khi DOM sẵn sàng — không dùng revenueData vì là biểu đồ khác
+document.addEventListener('DOMContentLoaded', reloadOccupancy);
 </script>
 {% endblock %}
